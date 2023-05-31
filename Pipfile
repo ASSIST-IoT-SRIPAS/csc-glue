@@ -4,6 +4,8 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+mqtt-controller = {editable = true, path = "./mqtt-controller"}
+paho-mqtt = "*"
 requests = "*"
 
 [dev-packages]

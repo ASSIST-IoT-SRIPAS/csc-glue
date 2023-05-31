@@ -9,3 +9,5 @@ Environment variables:
 - `GLUE_CSC_ENDPOINT_WORKERS` – SPARQL Update / Select endpoint for the workers graph
 - `GLUE_LTSE_POSTGREST_ENDPOINT` – PostgREST endpoint for the LTSE
 - `GLUE_POLL_INTERVAL` – Interval in seconds between polling the LTSE
+- `GLUE_MQTT_HOST` – MQTT broker host
+- `GLUE_MQTT_PORT` – MQTT broker port

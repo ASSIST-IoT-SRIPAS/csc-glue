@@ -9,13 +9,15 @@ ENV PYTHONFAULTHANDLER 1
 
 FROM base AS python-deps
 
+WORKDIR /app
+
 # Install pipenv and compilation dependencies
 RUN pip install pipenv
-RUN apt-get update && apt-get install -y --no-install-recommends gcc
 
 # Install python dependencies in /.venv
 COPY Pipfile .
 COPY Pipfile.lock .
+COPY mqtt-controller mqtt-controller
 RUN PIPENV_VENV_IN_PROJECT=1 pipenv install --deploy
 
 
@@ -24,7 +26,7 @@ FROM base AS runtime
 WORKDIR /app
 
 # Copy virtual env from python-deps stage
-COPY --from=python-deps /.venv /app/.venv
+COPY --from=python-deps /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 
 # Install application into container
