@@ -1,0 +1,7 @@
+include:
+  - project: 'sripas/gitlab-ci-templates'
+    file: 'docker-build.gitlab-ci.yml'
+
+docker-build:
+  variables:
+    ANT_DOCKER_REMOTE_REGISTRY: gitlab.assist-iot.eu:5050/wp7/pilot-2/registry
