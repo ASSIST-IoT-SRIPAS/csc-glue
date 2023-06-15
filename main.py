@@ -27,6 +27,7 @@ def main():
     csc_endpoint_workers = normalize_endpoint(os.getenv('GLUE_CSC_ENDPOINT_WORKERS'))
     ltse_postgrest_endpoint = normalize_endpoint(os.getenv('GLUE_LTSE_POSTGREST_ENDPOINT'))
     poll_interval = int(os.getenv('GLUE_POLL_INTERVAL'))
+    print('Connecting to the MQTT broker')
     mqtt_config = MqttConfig(
         client_id='csc-glue-' + str(random.randint(0, 100000)),
         broker_address=os.getenv('GLUE_MQTT_HOST'),
@@ -36,6 +37,7 @@ def main():
             'rq-worker-device': 'assist-iot/config/worker-device',
         }
     )
+    print('Starting the scheduler')
     scheduler = sched.scheduler(time.time, time.sleep)
 
     def loop_workers():
