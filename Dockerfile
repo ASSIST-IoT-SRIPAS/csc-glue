@@ -32,5 +32,4 @@ ENV PATH="/app/.venv/bin:$PATH"
 # Install application into container
 COPY . .
 
-ENTRYPOINT []
-CMD ["python", "main.py"]
+CMD ["python", "./main.py"]
