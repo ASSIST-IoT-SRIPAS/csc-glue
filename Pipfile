@@ -7,6 +7,8 @@ name = "pypi"
 mqtt-controller = {editable = true, path = "./mqtt-controller"}
 paho-mqtt = "*"
 requests = "*"
+flask = "*"
+apscheduler = "*"
 
 [dev-packages]
 

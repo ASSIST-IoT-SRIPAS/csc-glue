@@ -1,13 +1,28 @@
 import os
 import random
-import sched
-import time
 
+from apscheduler.schedulers.background import BackgroundScheduler
+from flask import Flask, Response
 from paho.mqtt.client import MQTTMessage
 
 from mqtt_controller import MqttController, MqttConfig
 import requests
 
+
+def normalize_endpoint(endpoint: str) -> str:
+    if endpoint.endswith('/'):
+        return endpoint[:-1]
+    return endpoint
+
+
+csc_endpoint_config = normalize_endpoint(os.getenv('GLUE_CSC_ENDPOINT_CONFIG'))
+csc_endpoint_workers = normalize_endpoint(os.getenv('GLUE_CSC_ENDPOINT_WORKERS'))
+csc_endpoint_metrics = '/'.join(csc_endpoint_config.split('/')[:-1] + ['$/metrics'])
+
+ltse_postgrest_endpoint = normalize_endpoint(os.getenv('GLUE_LTSE_POSTGREST_ENDPOINT'))
+poll_interval = int(os.getenv('GLUE_POLL_INTERVAL'))
+
+app = Flask(__name__)
 
 mqtt_c: MqttController | None = None
 ltse_cache = dict()
@@ -15,18 +30,15 @@ with open('res/insert_ts.ru', 'r') as fp:
     sparql_insert_ts = fp.read()
 
 
+@app.route('/metrics', methods=['GET'])
+def get_metrics():
+    rq = requests.get(csc_endpoint_metrics)
+    return Response(rq.content, mimetype='text/plain')
+
+
 def main():
     global mqtt_c
 
-    def normalize_endpoint(endpoint: str) -> str:
-        if endpoint.endswith('/'):
-            return endpoint[:-1]
-        return endpoint
-
-    csc_endpoint_config = normalize_endpoint(os.getenv('GLUE_CSC_ENDPOINT_CONFIG'))
-    csc_endpoint_workers = normalize_endpoint(os.getenv('GLUE_CSC_ENDPOINT_WORKERS'))
-    ltse_postgrest_endpoint = normalize_endpoint(os.getenv('GLUE_LTSE_POSTGREST_ENDPOINT'))
-    poll_interval = int(os.getenv('GLUE_POLL_INTERVAL'))
     print('Connecting to the MQTT broker')
     mqtt_config = MqttConfig(
         client_id='csc-glue-' + str(random.randint(0, 100000)),
@@ -38,7 +50,7 @@ def main():
         }
     )
     print('Starting the scheduler')
-    scheduler = sched.scheduler(time.time, time.sleep)
+    scheduler = BackgroundScheduler(daemon=True)
 
     def loop_workers():
         try:
@@ -47,7 +59,6 @@ def main():
         except Exception as e:
             print('Error in loop_workers')
             print(e)
-        scheduler.enter(poll_interval, 1, loop_workers)
 
     def loop_config():
         try:
@@ -56,7 +67,6 @@ def main():
         except Exception as e:
             print('Error in loop_config')
             print(e)
-        scheduler.enter(poll_interval, 1, loop_config)
 
     def on_message(client, userdata, m: MQTTMessage):
         if m.topic.endswith('/worker'):
@@ -73,9 +83,10 @@ def main():
     mqtt_c.client.subscribe('assist-iot/semantic/config/+')
     mqtt_c.client.on_message = on_message
 
-    scheduler.enter(0, 1, loop_workers)
-    scheduler.enter(0, 1, loop_config)
-    scheduler.run()
+    scheduler.add_job(loop_workers, 'interval', seconds=poll_interval)
+    scheduler.add_job(loop_config, 'interval', seconds=poll_interval)
+    scheduler.start()
+    app.run(debug=True, use_reloader=False, host='0.0.0.0', port=5010)
 
 
 def get_ltse_table(endpoint: str, name: str) -> str | None:
